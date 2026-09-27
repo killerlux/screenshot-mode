@@ -16,11 +16,18 @@ import {
 import { applyDecorations } from "@/utils/decorations";
 import { mountEditor } from "@/utils/editor";
 import { filterHeaders } from "@/utils/headers";
+import {
+  formatHttpMessage,
+  getHttpContentType,
+  type MessageViewMode,
+} from "@/utils/httpFormatting";
 import { isPresent } from "@/utils/optional";
 
 const {
   requestRaw,
   responseRaw,
+  requestViewMode,
+  responseViewMode,
   settings,
   splitterSizes,
   responseInfo = undefined,
@@ -28,6 +35,8 @@ const {
 } = defineProps<{
   requestRaw: string;
   responseRaw: string;
+  requestViewMode: MessageViewMode;
+  responseViewMode: MessageViewMode;
   settings: ScreenshotSettings;
   splitterSizes: [number, number];
   responseInfo?: ResponseMeta;
@@ -73,6 +82,16 @@ function updateEditors(): void {
   ];
   const filteredRequest = filterHeaders(requestRaw, requestHeaderRules);
   const filteredResponse = filterHeaders(responseRaw, responseHeaderRules);
+  const displayedRequest = formatHttpMessage(
+    filteredRequest,
+    requestViewMode,
+    getHttpContentType(requestRaw),
+  );
+  const displayedResponse = formatHttpMessage(
+    filteredResponse,
+    responseViewMode,
+    getHttpContentType(responseRaw),
+  );
 
   const requestView = requestEditor.getEditorView();
   const responseView = responseEditor.getEditorView();
@@ -81,7 +100,7 @@ function updateEditors(): void {
     changes: {
       from: 0,
       to: requestView.state.doc.length,
-      insert: filteredRequest,
+      insert: displayedRequest,
     },
   });
 
@@ -89,7 +108,7 @@ function updateEditors(): void {
     changes: {
       from: 0,
       to: responseView.state.doc.length,
-      insert: filteredResponse,
+      insert: displayedResponse,
     },
   });
 
@@ -110,6 +129,8 @@ watch(
   () => [
     requestRaw,
     responseRaw,
+    requestViewMode,
+    responseViewMode,
     settings.headersToHide,
     settings.highlights,
     settings.redactions,
