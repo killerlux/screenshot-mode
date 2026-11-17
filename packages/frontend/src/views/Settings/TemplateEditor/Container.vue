@@ -17,6 +17,7 @@ import {
   type Disposition,
   type HiddenHeaders,
   type HighlightRule,
+  type MessageViewMode,
   type RedactionRule,
   type ScreenshotSettings,
   type Template,
@@ -68,6 +69,20 @@ const showTimestamp = computed({
   get: () => settings.value.showTimestamp,
   set: (value: boolean) => {
     settings.value = { ...settings.value, showTimestamp: value };
+  },
+});
+
+const requestViewMode = computed({
+  get: () => settings.value.requestViewMode,
+  set: (value: MessageViewMode) => {
+    settings.value = { ...settings.value, requestViewMode: value };
+  },
+});
+
+const responseViewMode = computed({
+  get: () => settings.value.responseViewMode,
+  set: (value: MessageViewMode) => {
+    settings.value = { ...settings.value, responseViewMode: value };
   },
 });
 
@@ -172,6 +187,8 @@ async function handleSave(): Promise<void> {
           <DisplaySettings
             v-model="showTimestamp"
             v-model:show-response-info="showResponseInfo"
+            v-model:request-view-mode="requestViewMode"
+            v-model:response-view-mode="responseViewMode"
           />
         </div>
 

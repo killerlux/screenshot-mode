@@ -16,18 +16,12 @@ import {
 import { applyDecorations } from "@/utils/decorations";
 import { mountEditor } from "@/utils/editor";
 import { filterHeaders } from "@/utils/headers";
-import {
-  formatHttpMessage,
-  getHttpContentType,
-  type MessageViewMode,
-} from "@/utils/httpFormatting";
+import { formatHttpMessage, getHttpContentType } from "@/utils/httpFormatting";
 import { isPresent } from "@/utils/optional";
 
 const {
   requestRaw,
   responseRaw,
-  requestViewMode,
-  responseViewMode,
   settings,
   splitterSizes,
   responseInfo = undefined,
@@ -35,8 +29,6 @@ const {
 } = defineProps<{
   requestRaw: string;
   responseRaw: string;
-  requestViewMode: MessageViewMode;
-  responseViewMode: MessageViewMode;
   settings: ScreenshotSettings;
   splitterSizes: [number, number];
   responseInfo?: ResponseMeta;
@@ -71,72 +63,77 @@ const contextMenuPosition = ref({ x: 0, y: 0 });
 const selectedText = ref("");
 const selectionTarget = ref<RuleTarget>(RuleTarget.Request);
 
-function updateEditors(): void {
-  const requestHeaderRules = [
-    ...settings.headersToHide.both,
-    ...settings.headersToHide.request,
-  ];
-  const responseHeaderRules = [
-    ...settings.headersToHide.both,
-    ...settings.headersToHide.response,
-  ];
-  const filteredRequest = filterHeaders(requestRaw, requestHeaderRules);
-  const filteredResponse = filterHeaders(responseRaw, responseHeaderRules);
-  const displayedRequest = formatHttpMessage(
-    filteredRequest,
-    requestViewMode,
+const requestHeaderRules = computed(() => [
+  ...settings.headersToHide.both,
+  ...settings.headersToHide.request,
+]);
+const responseHeaderRules = computed(() => [
+  ...settings.headersToHide.both,
+  ...settings.headersToHide.response,
+]);
+
+const displayedRequest = computed(() =>
+  formatHttpMessage(
+    filterHeaders(requestRaw, requestHeaderRules.value),
+    settings.requestViewMode,
     getHttpContentType(requestRaw),
-  );
-  const displayedResponse = formatHttpMessage(
-    filteredResponse,
-    responseViewMode,
+  ),
+);
+const displayedResponse = computed(() =>
+  formatHttpMessage(
+    filterHeaders(responseRaw, responseHeaderRules.value),
+    settings.responseViewMode,
     getHttpContentType(responseRaw),
-  );
+  ),
+);
 
-  const requestView = requestEditor.getEditorView();
-  const responseView = responseEditor.getEditorView();
-
-  requestView.dispatch({
-    changes: {
-      from: 0,
-      to: requestView.state.doc.length,
-      insert: displayedRequest,
-    },
-  });
-
-  responseView.dispatch({
-    changes: {
-      from: 0,
-      to: responseView.state.doc.length,
-      insert: displayedResponse,
-    },
-  });
-
+function applyRequestDecorations(): void {
   applyDecorations(
-    requestView,
+    requestEditor.getEditorView(),
     settings.highlights.filter((h) => h.target === RuleTarget.Request),
     settings.redactions.filter((r) => r.target === RuleTarget.Request),
   );
+}
 
+function applyResponseDecorations(): void {
   applyDecorations(
-    responseView,
+    responseEditor.getEditorView(),
     settings.highlights.filter((h) => h.target === RuleTarget.Response),
     settings.redactions.filter((r) => r.target === RuleTarget.Response),
   );
 }
 
+function setEditorText(view: EditorView, text: string): void {
+  if (view.state.doc.toString() === text) return;
+
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: text },
+  });
+}
+
+function updateRequestEditor(): void {
+  setEditorText(requestEditor.getEditorView(), displayedRequest.value);
+  applyRequestDecorations();
+}
+
+function updateResponseEditor(): void {
+  setEditorText(responseEditor.getEditorView(), displayedResponse.value);
+  applyResponseDecorations();
+}
+
+function updateEditors(): void {
+  updateRequestEditor();
+  updateResponseEditor();
+}
+
+watch(displayedRequest, updateRequestEditor);
+watch(displayedResponse, updateResponseEditor);
+
 watch(
-  () => [
-    requestRaw,
-    responseRaw,
-    requestViewMode,
-    responseViewMode,
-    settings.headersToHide,
-    settings.highlights,
-    settings.redactions,
-  ],
+  () => [settings.highlights, settings.redactions],
   () => {
-    updateEditors();
+    applyRequestDecorations();
+    applyResponseDecorations();
   },
   { deep: true },
 );

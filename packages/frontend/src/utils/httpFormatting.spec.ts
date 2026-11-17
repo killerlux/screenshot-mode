@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatHttpMessage,
-  getHttpContentType,
-  MessageViewMode,
-} from "./httpFormatting";
+import { formatHttpMessage, getHttpContentType } from "./httpFormatting";
+
+import { MessageViewMode } from "@/types";
 
 describe("formatHttpMessage", () => {
   it("keeps the exact message in raw mode", () => {
@@ -43,6 +41,18 @@ describe("formatHttpMessage", () => {
 
     const result = formatHttpMessage(raw, MessageViewMode.Pretty);
     expect(result).toContain('  <item value="a > b">Example &amp; Demo</item>');
+  });
+
+  it("keeps spacing inside inline XML text nodes", () => {
+    const raw = [
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/xml",
+      "",
+      "<root><item>  padded  </item></root>",
+    ].join("\n");
+
+    const result = formatHttpMessage(raw, MessageViewMode.Pretty);
+    expect(result).toContain("<item>  padded  </item>");
   });
 
   it("pretty prints JSON while retaining original number and key tokens", () => {
@@ -139,5 +149,58 @@ describe("formatHttpMessage", () => {
     expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toContain(
       '\r\n  "status": "ok",',
     );
+  });
+
+  it("falls back to raw for invalid JSON instead of producing layout changes", () => {
+    const bodies = [
+      '{"a":1,}',
+      '{"a":01}',
+      '{"a":"unterminated}',
+      '{"a":"bad \\q escape"}',
+      '{"a":tru}',
+      "['single']",
+      '{"a":1} trailing',
+      '{"a":"\\u12"}',
+      '{"a":1}{"b":2}',
+    ];
+
+    for (const body of bodies) {
+      const raw = [
+        "HTTP/1.1 200 OK",
+        "Content-Type: application/json",
+        "",
+        body,
+      ].join("\r\n");
+
+      expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toBe(raw);
+    }
+  });
+
+  it("keeps whitespace inside JSON strings and nested empty containers", () => {
+    const raw = [
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/json",
+      "",
+      '{"a":"  padded  ","b":[],"c":[[],{}],"d":"\\u00e9"}',
+    ].join("\n");
+
+    const result = formatHttpMessage(raw, MessageViewMode.Pretty);
+
+    expect(result).toContain('"a": "  padded  "');
+    expect(result).toContain('"b": []');
+    expect(result).toContain('"c": [\n    [],\n    {}\n  ]');
+    expect(result).toContain('"d": "\\u00e9"');
+  });
+
+  it("leaves bodies above the formatting size limit raw", () => {
+    const padding = "x".repeat(1024 * 1024);
+    const raw = [
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/json",
+      "",
+      `{"data":"${padding}"}`,
+    ].join("\r\n");
+
+    expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toBe(raw);
   });
 });

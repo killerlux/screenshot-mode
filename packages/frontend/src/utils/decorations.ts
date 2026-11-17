@@ -7,7 +7,7 @@ import {
 } from "@codemirror/view";
 
 import { isPresent } from "./optional";
-import { escapeRegex } from "./regex";
+import { escapeLiteralPattern } from "./regex";
 
 import {
   HighlightMode,
@@ -193,7 +193,7 @@ function getRedactionRanges(
 }
 
 function resolvePattern(regex: string, matchMode: MatchMode): string {
-  return matchMode === MatchMode.String ? escapeRegex(regex) : regex;
+  return matchMode === MatchMode.String ? escapeLiteralPattern(regex) : regex;
 }
 
 export function applyDecorations(

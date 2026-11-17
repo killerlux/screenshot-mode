@@ -10,8 +10,6 @@ import {
   type ScreenshotSettings,
   WidthMode,
 } from "@/types";
-import { type MessageViewMode } from "@/utils/httpFormatting";
-import { isPresent } from "@/utils/optional";
 
 interface DataDisplayExposed {
   clearSelectionsForCapture: () => void;
@@ -29,8 +27,6 @@ const {
   settings,
   requestRaw,
   responseRaw,
-  requestViewMode,
-  responseViewMode,
   url,
   sni,
   splitterSizes,
@@ -41,8 +37,6 @@ const {
   settings: ScreenshotSettings;
   requestRaw: string;
   responseRaw: string;
-  requestViewMode: MessageViewMode;
-  responseViewMode: MessageViewMode;
   url: string;
   sni: string | undefined;
   splitterSizes: [number, number];
@@ -103,8 +97,6 @@ defineExpose({
         ref="dataDisplayRef"
         :request-raw="requestRaw"
         :response-raw="responseRaw"
-        :request-view-mode="requestViewMode"
-        :response-view-mode="responseViewMode"
         :settings="settings"
         :splitter-sizes="splitterSizes"
         :response-info="responseInfo"

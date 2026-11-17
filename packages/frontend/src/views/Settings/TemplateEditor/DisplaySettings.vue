@@ -1,10 +1,24 @@
 <script setup lang="ts">
+import SelectButton from "primevue/selectbutton";
 import ToggleSwitch from "primevue/toggleswitch";
+
+import { MessageViewMode } from "@/types";
 
 const showTimestamp = defineModel<boolean>({ required: true });
 const showResponseInfo = defineModel<boolean>("showResponseInfo", {
   required: true,
 });
+const requestViewMode = defineModel<MessageViewMode>("requestViewMode", {
+  required: true,
+});
+const responseViewMode = defineModel<MessageViewMode>("responseViewMode", {
+  required: true,
+});
+
+const viewModeOptions = [
+  { label: "Pretty", value: MessageViewMode.Pretty },
+  { label: "Raw", value: MessageViewMode.Raw },
+];
 </script>
 
 <template>
@@ -15,9 +29,31 @@ const showResponseInfo = defineModel<boolean>("showResponseInfo", {
       >
         <i class="fas fa-info-circle text-xs text-surface-300" />
       </div>
-      <label class="text-sm font-medium text-surface-200">Metadata</label>
+      <label class="text-sm font-medium text-surface-200">Display</label>
     </div>
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-2">
+      <label class="text-sm text-surface-200">Request body</label>
+      <SelectButton
+        v-model="requestViewMode"
+        :options="viewModeOptions"
+        option-label="label"
+        option-value="value"
+        :allow-empty="false"
+        size="small"
+      />
+    </div>
+    <div class="mt-2 flex items-center justify-between gap-2">
+      <label class="text-sm text-surface-200">Response body</label>
+      <SelectButton
+        v-model="responseViewMode"
+        :options="viewModeOptions"
+        option-label="label"
+        option-value="value"
+        :allow-empty="false"
+        size="small"
+      />
+    </div>
+    <div class="mt-2 flex items-center justify-between">
       <label class="text-sm text-surface-200">Show Timestamp</label>
       <ToggleSwitch v-model="showTimestamp" />
     </div>

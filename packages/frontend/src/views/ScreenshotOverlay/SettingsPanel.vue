@@ -23,6 +23,8 @@ import {
   HighlightMode,
   type HighlightRule,
   MatchMode,
+  MessageViewMode,
+  type MessageViewMode as MessageViewModeType,
   RedactionMode,
   type RedactionRule,
   RuleTarget,
@@ -80,6 +82,11 @@ const headerTargetOptions = [
   { label: "Response", value: HeaderHideTarget.Response },
 ];
 
+const viewModeOptions = [
+  { label: "Pretty", value: MessageViewMode.Pretty },
+  { label: "Raw", value: MessageViewMode.Raw },
+];
+
 const headerTarget = ref<HeaderHideTargetType>(HeaderHideTarget.Both);
 
 const headersText = computed({
@@ -133,6 +140,20 @@ const widthPixelValue = computed({
         width: { mode: WidthMode.Pixel, value },
       });
     }
+  },
+});
+
+const requestViewMode = computed({
+  get: () => settings.requestViewMode,
+  set: (value: MessageViewModeType) => {
+    emit("update", { ...settings, requestViewMode: value });
+  },
+});
+
+const responseViewMode = computed({
+  get: () => settings.responseViewMode,
+  set: (value: MessageViewModeType) => {
+    emit("update", { ...settings, responseViewMode: value });
   },
 });
 
@@ -322,6 +343,36 @@ function createTemplate() {
           suffix="px"
           class="w-32"
         />
+      </div>
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-surface-200">
+        Body View
+      </label>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm text-surface-300">Request</span>
+          <SelectButton
+            v-model="requestViewMode"
+            :options="viewModeOptions"
+            option-label="label"
+            option-value="value"
+            :allow-empty="false"
+            size="small"
+          />
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm text-surface-300">Response</span>
+          <SelectButton
+            v-model="responseViewMode"
+            :options="viewModeOptions"
+            option-label="label"
+            option-value="value"
+            :allow-empty="false"
+            size="small"
+          />
+        </div>
       </div>
     </div>
 

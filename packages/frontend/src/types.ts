@@ -67,6 +67,13 @@ export const Alteration = {
 } as const;
 export type Alteration = (typeof Alteration)[keyof typeof Alteration];
 
+export const MessageViewMode = {
+  Raw: "raw",
+  Pretty: "pretty",
+} as const;
+export type MessageViewMode =
+  (typeof MessageViewMode)[keyof typeof MessageViewMode];
+
 // --- Types ---
 
 export type ResponseMeta = {
@@ -162,6 +169,8 @@ export const DEFAULT_SETTINGS: ScreenshotSettings = {
   },
   disposition: Disposition.Horizontal,
   width: { mode: WidthMode.Full },
+  requestViewMode: MessageViewMode.Raw,
+  responseViewMode: MessageViewMode.Raw,
   highlights: [],
   redactions: [],
   showTimestamp: false,

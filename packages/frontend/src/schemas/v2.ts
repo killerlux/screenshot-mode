@@ -3,14 +3,19 @@ import { z } from "zod";
 import {
   DispositionSchema,
   HiddenHeadersSchema,
+  MessageViewModeSchema,
   WidthSettingSchema,
 } from "./common";
 import { HighlightRuleSchema, RedactionRuleSchema } from "./rules";
+
+import { MessageViewMode } from "@/types";
 
 export const V2SettingsSchema = z.object({
   headersToHide: HiddenHeadersSchema,
   disposition: DispositionSchema,
   width: WidthSettingSchema,
+  requestViewMode: MessageViewModeSchema.default(MessageViewMode.Raw),
+  responseViewMode: MessageViewModeSchema.default(MessageViewMode.Raw),
   highlights: z.array(HighlightRuleSchema),
   redactions: z.array(RedactionRuleSchema),
   showTimestamp: z.boolean().default(false),

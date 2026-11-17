@@ -20,13 +20,18 @@ Create pretty screenshots of your requests and response right into Caido. No ext
 
 ## Pretty and Raw views
 
-Request and response bodies can be switched between Pretty and Raw independently.
+Request and response bodies can be shown independently as Raw or Pretty. The mode is
+stored in the template, and **Raw is the default** for both sides so that existing
+highlight and redaction rules keep matching the text on the wire.
+
 Pretty mode formats JSON, XML, and URL-encoded form bodies for the screenshot while
-leaving the underlying HTTP message unchanged.
+leaving the stored HTTP message untouched. XML is re-indented without collapsing inline
+text. Bodies that are malformed, binary, unsupported, or larger than 1 MiB are shown
+as Raw.
 
 | Raw | Pretty |
 | --- | --- |
-| ![Synthetic request and response in Raw mode](docs/images/pretty-view-before.png) | ![The same synthetic request and response in Pretty mode](docs/images/pretty-view-after.png) |
+| ![Synthetic request and response in Raw mode](assets/pretty-view-before.png) | ![The same synthetic request and response in Pretty mode](assets/pretty-view-after.png) |
 
 The comparison uses synthetic example data only.
 

@@ -13,6 +13,7 @@ import {
   Disposition,
   HighlightMode,
   MatchMode,
+  MessageViewMode,
   RedactionMode,
   RuleTarget,
   WidthMode,
@@ -387,5 +388,25 @@ describe("V2TemplateSchema", () => {
     };
     const result = V2TemplateSchema.safeParse(template);
     expect(result.success).toBe(true);
+  });
+
+  it("defaults missing body view modes to raw", () => {
+    const template = {
+      id: "abc",
+      name: "My Template",
+      settings: {
+        headersToHide: { both: [], request: [], response: [] },
+        disposition: Disposition.Vertical,
+        width: { mode: WidthMode.A4 },
+        highlights: [],
+        redactions: [],
+      },
+    };
+    const result = V2TemplateSchema.safeParse(template);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.settings.requestViewMode).toBe(MessageViewMode.Raw);
+      expect(result.data.settings.responseViewMode).toBe(MessageViewMode.Raw);
+    }
   });
 });

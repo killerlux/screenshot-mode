@@ -1,10 +1,15 @@
 import { z } from "zod";
 
-import { Disposition, RuleTarget, WidthMode } from "@/types";
+import { Disposition, MessageViewMode, RuleTarget, WidthMode } from "@/types";
 
 export const RuleTargetSchema = z.enum([
   RuleTarget.Request,
   RuleTarget.Response,
+]);
+
+export const MessageViewModeSchema = z.enum([
+  MessageViewMode.Raw,
+  MessageViewMode.Pretty,
 ]);
 
 export const HiddenHeadersSchema = z.object({
