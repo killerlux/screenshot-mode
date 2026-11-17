@@ -203,4 +203,78 @@ describe("formatHttpMessage", () => {
 
     expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toBe(raw);
   });
+
+  it("accepts whitespace after a comma in JSON objects", () => {
+    const raw = [
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/json",
+      "",
+      '{"a":1, "b":2}',
+    ].join("\r\n");
+
+    const result = formatHttpMessage(raw, MessageViewMode.Pretty);
+
+    expect(result).toContain('\r\n  "a": 1,');
+    expect(result).toContain('\r\n  "b": 2');
+  });
+
+  it("keeps bodies with xml:space=preserve raw", () => {
+    const raw = [
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/xml",
+      "",
+      '<root><pre xml:space="preserve">  first\n  second</pre></root>',
+    ].join("\r\n");
+
+    expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toBe(raw);
+  });
+
+  it("keeps multi-line XML text nodes raw instead of trimming them", () => {
+    const raw = [
+      "HTTP/1.1 200 OK",
+      "Content-Type: application/xml",
+      "",
+      "<root><note>\n  first line\n  second line\n</note></root>",
+    ].join("\r\n");
+
+    expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toBe(raw);
+  });
+
+  it("rejects multiple XML document roots", () => {
+    for (const body of ["<a/><b/>", "<a></a><b></b>", "<a></a>"]) {
+      const raw = [
+        "HTTP/1.1 200 OK",
+        "Content-Type: application/xml",
+        "",
+        body,
+      ].join("\r\n");
+
+      const result = formatHttpMessage(raw, MessageViewMode.Pretty);
+
+      if (body === "<a></a>") {
+        expect(result).toContain("\r\n<a>");
+      } else {
+        expect(result).toBe(raw);
+      }
+    }
+  });
+
+  it("bounds indentation for deeply nested documents", () => {
+    const deepXml = "<a>".repeat(200) + "<leaf/>" + "</a>".repeat(200);
+    const deepJson = "[".repeat(300) + "1" + "]".repeat(300);
+
+    for (const [body, contentType] of [
+      [deepXml, "application/xml"],
+      [deepJson, "application/json"],
+    ] as const) {
+      const raw = [
+        "HTTP/1.1 200 OK",
+        `Content-Type: ${contentType}`,
+        "",
+        body,
+      ].join("\r\n");
+
+      expect(formatHttpMessage(raw, MessageViewMode.Pretty)).toBe(raw);
+    }
+  });
 });

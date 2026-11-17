@@ -10,7 +10,7 @@ import Select from "primevue/select";
 import SelectButton from "primevue/selectbutton";
 import Textarea from "primevue/textarea";
 import ToggleSwitch from "primevue/toggleswitch";
-import { computed, ref } from "vue";
+import { computed, ref, useId } from "vue";
 
 import { HighlightRulesList } from "@/components/HighlightRulesList";
 import { RedactionRulesList } from "@/components/RedactionRulesList";
@@ -86,6 +86,9 @@ const viewModeOptions = [
   { label: "Pretty", value: MessageViewMode.Pretty },
   { label: "Raw", value: MessageViewMode.Raw },
 ];
+
+const requestLabelId = useId();
+const responseLabelId = useId();
 
 const headerTarget = ref<HeaderHideTargetType>(HeaderHideTarget.Both);
 
@@ -352,24 +355,30 @@ function createTemplate() {
       </label>
       <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-sm text-surface-300">Request</span>
+          <span :id="requestLabelId" class="text-sm text-surface-300"
+            >Request</span
+          >
           <SelectButton
             v-model="requestViewMode"
             :options="viewModeOptions"
             option-label="label"
             option-value="value"
             :allow-empty="false"
+            :aria-labelledby="requestLabelId"
             size="small"
           />
         </div>
         <div class="flex items-center justify-between gap-2">
-          <span class="text-sm text-surface-300">Response</span>
+          <span :id="responseLabelId" class="text-sm text-surface-300"
+            >Response</span
+          >
           <SelectButton
             v-model="responseViewMode"
             :options="viewModeOptions"
             option-label="label"
             option-value="value"
             :allow-empty="false"
+            :aria-labelledby="responseLabelId"
             size="small"
           />
         </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SelectButton from "primevue/selectbutton";
 import ToggleSwitch from "primevue/toggleswitch";
+import { useId } from "vue";
 
 import { MessageViewMode } from "@/types";
 
@@ -19,6 +20,9 @@ const viewModeOptions = [
   { label: "Pretty", value: MessageViewMode.Pretty },
   { label: "Raw", value: MessageViewMode.Raw },
 ];
+
+const requestLabelId = useId();
+const responseLabelId = useId();
 </script>
 
 <template>
@@ -32,24 +36,30 @@ const viewModeOptions = [
       <label class="text-sm font-medium text-surface-200">Display</label>
     </div>
     <div class="flex items-center justify-between gap-2">
-      <label class="text-sm text-surface-200">Request body</label>
+      <label :id="requestLabelId" class="text-sm text-surface-200"
+        >Request body</label
+      >
       <SelectButton
         v-model="requestViewMode"
         :options="viewModeOptions"
         option-label="label"
         option-value="value"
         :allow-empty="false"
+        :aria-labelledby="requestLabelId"
         size="small"
       />
     </div>
     <div class="mt-2 flex items-center justify-between gap-2">
-      <label class="text-sm text-surface-200">Response body</label>
+      <label :id="responseLabelId" class="text-sm text-surface-200"
+        >Response body</label
+      >
       <SelectButton
         v-model="responseViewMode"
         :options="viewModeOptions"
         option-label="label"
         option-value="value"
         :allow-empty="false"
+        :aria-labelledby="responseLabelId"
         size="small"
       />
     </div>

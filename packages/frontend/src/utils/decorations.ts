@@ -196,6 +196,43 @@ function resolvePattern(regex: string, matchMode: MatchMode): string {
   return matchMode === MatchMode.String ? escapeLiteralPattern(regex) : regex;
 }
 
+function countRuleMatches(
+  text: string,
+  regex: string,
+  matchMode: MatchMode,
+): number {
+  const pattern = resolvePattern(regex, matchMode);
+  if (pattern.length === 0) return 0;
+
+  try {
+    return text.match(new RegExp(pattern, "g"))?.length ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Pretty formatting only changes whitespace, but it can add it where a rule's
+ * text had none, which would silently drop that redaction from the screenshot.
+ * When that happens the caller keeps the unformatted text for that side instead
+ * of rendering a body with fewer redactions than the source had.
+ */
+export function formattingDropsRedactions(
+  source: string,
+  displayed: string,
+  redactions: RedactionRule[],
+): boolean {
+  return redactions.some((rule) => {
+    const displayedMatches = countRuleMatches(
+      displayed,
+      rule.regex,
+      rule.matchMode,
+    );
+    const sourceMatches = countRuleMatches(source, rule.regex, rule.matchMode);
+    return displayedMatches < sourceMatches;
+  });
+}
+
 export function applyDecorations(
   view: EditorView,
   highlights: HighlightRule[],

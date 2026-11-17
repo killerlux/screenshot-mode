@@ -3,6 +3,10 @@ import { MessageViewMode } from "@/types";
 const INDENT = "  ";
 const FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
 const MAX_FORMATTED_BODY_LENGTH = 1024 * 1024;
+const MAX_FORMATTED_OUTPUT_LENGTH = MAX_FORMATTED_BODY_LENGTH * 2;
+const MAX_JSON_DEPTH = 256;
+const MAX_XML_DEPTH = 64;
+const PRESERVED_XML_SPACE_PATTERN = /xml:space\s*=\s*["']?preserve/i;
 const CONTENT_TYPE_PATTERN = /^content-type\s*:\s*([^;\r\n]+)/im;
 const SEPARATOR_PATTERN = /\r?\n\r?\n/;
 const JSON_NUMBER_PATTERN = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
@@ -111,12 +115,17 @@ function prettyXml(body: string, newline: string): string | undefined {
     return undefined;
   }
 
+  // Re-indenting cannot honour xml:space="preserve"; keep the body raw instead.
+  if (PRESERVED_XML_SPACE_PATTERN.test(normalizedBody)) return undefined;
+
   const tokens = tokenizeMarkup(normalizedBody);
   if (tokens === undefined) return undefined;
 
   const lines: string[] = [];
   const elementStack: string[] = [];
   let elementCount = 0;
+  let rootElementCount = 0;
+  let outputLength = 0;
 
   for (let index = 0; index < tokens.length; index++) {
     const token = tokens[index] ?? "";
@@ -125,10 +134,8 @@ function prettyXml(body: string, newline: string): string | undefined {
 
     const isTag = trimmedToken.startsWith("<");
     const isClosingTag = /^<\//.test(trimmedToken);
-    const isStandaloneTag =
-      /^<\?/.test(trimmedToken) ||
-      /^<!/.test(trimmedToken) ||
-      /\/\s*>$/.test(trimmedToken);
+    const isDeclaration = /^<\?/.test(trimmedToken) || /^<!/.test(trimmedToken);
+    const isStandaloneTag = isDeclaration || /\/\s*>$/.test(trimmedToken);
     const isOpeningTag = isTag && !isClosingTag && !isStandaloneTag;
 
     if (!isTag) {
@@ -141,8 +148,14 @@ function prettyXml(body: string, newline: string): string | undefined {
 
       const previousLine = lines.at(-1);
       if (previousLine === undefined) return undefined;
-      const textContent = /[\r\n]/.test(token) ? trimmedToken : token;
-      lines[lines.length - 1] = `${previousLine}${textContent}${nextToken}`;
+
+      // Text that spans lines cannot be re-indented without changing it.
+      if (/[\r\n]/.test(token)) return undefined;
+
+      const line = `${previousLine}${token}${nextToken}`;
+      outputLength += line.length - previousLine.length;
+      if (outputLength > MAX_FORMATTED_OUTPUT_LENGTH) return undefined;
+      lines[lines.length - 1] = line;
       elementStack.pop();
       elementCount++;
       index++;
@@ -156,11 +169,19 @@ function prettyXml(body: string, newline: string): string | undefined {
       }
     }
 
-    if (!/^<\?/.test(trimmedToken) && !/^<!/.test(trimmedToken)) {
-      elementCount++;
+    if (!isClosingTag && !isDeclaration) {
+      if (elementStack.length === 0) rootElementCount++;
+      if (rootElementCount > 1) return undefined;
     }
 
-    lines.push(`${INDENT.repeat(elementStack.length)}${trimmedToken}`);
+    if (!isDeclaration) elementCount++;
+
+    if (elementStack.length >= MAX_XML_DEPTH) return undefined;
+
+    const line = `${INDENT.repeat(elementStack.length)}${trimmedToken}`;
+    outputLength += line.length + newline.length;
+    if (outputLength > MAX_FORMATTED_OUTPUT_LENGTH) return undefined;
+    lines.push(line);
 
     if (isOpeningTag) {
       const openingName = getOpeningTagName(trimmedToken);
@@ -252,6 +273,8 @@ function prettyJson(body: string, newline: string): string | undefined {
   }
 
   function readValue(depth: number): boolean {
+    if (depth > MAX_JSON_DEPTH) return false;
+
     skipWhitespace();
     const character = source[position];
 
@@ -280,6 +303,7 @@ function prettyJson(body: string, newline: string): string | undefined {
 
     while (true) {
       beginLine(depth + 1);
+      skipWhitespace();
       if (!readString()) return false;
 
       skipWhitespace();

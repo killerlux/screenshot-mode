@@ -9,11 +9,16 @@ import { SelectionContextMenu } from "@/components/SelectionContextMenu";
 import { useSDK } from "@/plugins/sdk";
 import {
   Disposition,
+  type MessageViewMode,
+  type RedactionRule,
   type ResponseMeta,
   RuleTarget,
   type ScreenshotSettings,
 } from "@/types";
-import { applyDecorations } from "@/utils/decorations";
+import {
+  applyDecorations,
+  formattingDropsRedactions,
+} from "@/utils/decorations";
 import { mountEditor } from "@/utils/editor";
 import { filterHeaders } from "@/utils/headers";
 import { formatHttpMessage, getHttpContentType } from "@/utils/httpFormatting";
@@ -72,18 +77,43 @@ const responseHeaderRules = computed(() => [
   ...settings.headersToHide.response,
 ]);
 
+const requestRedactions = computed(() =>
+  settings.redactions.filter((rule) => rule.target === RuleTarget.Request),
+);
+const responseRedactions = computed(() =>
+  settings.redactions.filter((rule) => rule.target === RuleTarget.Response),
+);
+
+function displayMessage(
+  raw: string,
+  headerRules: string[],
+  mode: MessageViewMode,
+  redactions: RedactionRule[],
+): string {
+  const filtered = filterHeaders(raw, headerRules);
+  const formatted = formatHttpMessage(filtered, mode, getHttpContentType(raw));
+
+  if (formatted === filtered) return formatted;
+
+  return formattingDropsRedactions(filtered, formatted, redactions)
+    ? filtered
+    : formatted;
+}
+
 const displayedRequest = computed(() =>
-  formatHttpMessage(
-    filterHeaders(requestRaw, requestHeaderRules.value),
+  displayMessage(
+    requestRaw,
+    requestHeaderRules.value,
     settings.requestViewMode,
-    getHttpContentType(requestRaw),
+    requestRedactions.value,
   ),
 );
 const displayedResponse = computed(() =>
-  formatHttpMessage(
-    filterHeaders(responseRaw, responseHeaderRules.value),
+  displayMessage(
+    responseRaw,
+    responseHeaderRules.value,
     settings.responseViewMode,
-    getHttpContentType(responseRaw),
+    responseRedactions.value,
   ),
 );
 
@@ -91,7 +121,7 @@ function applyRequestDecorations(): void {
   applyDecorations(
     requestEditor.getEditorView(),
     settings.highlights.filter((h) => h.target === RuleTarget.Request),
-    settings.redactions.filter((r) => r.target === RuleTarget.Request),
+    requestRedactions.value,
   );
 }
 
@@ -99,7 +129,7 @@ function applyResponseDecorations(): void {
   applyDecorations(
     responseEditor.getEditorView(),
     settings.highlights.filter((h) => h.target === RuleTarget.Response),
-    settings.redactions.filter((r) => r.target === RuleTarget.Response),
+    responseRedactions.value,
   );
 }
 
