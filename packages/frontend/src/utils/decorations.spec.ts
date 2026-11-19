@@ -45,6 +45,30 @@ describe("formattingDropsRedactions", () => {
     ).toBe(false);
   });
 
+  it("detects a regex rule that matches different text with the same count", () => {
+    const source = '{"password":"secret","public":"ok"}';
+    const displayed = '{\n  "password": "secret",\n  "public": "ok"\n}';
+    const unionRule = {
+      ...redaction('"password":"secret"|"public": "ok"'),
+      matchMode: MatchMode.Regex,
+    };
+
+    expect(formattingDropsRedactions(source, displayed, [unionRule])).toBe(
+      true,
+    );
+  });
+
+  it("accepts a regex rule whose matches survive with new whitespace", () => {
+    const source = '{"password":"secret"}';
+    const displayed = '{\n  "password": "secret"\n}';
+    const rule = {
+      ...redaction('"password":\\s*"secret"'),
+      matchMode: MatchMode.Regex,
+    };
+
+    expect(formattingDropsRedactions(source, displayed, [rule])).toBe(false);
+  });
+
   it("ignores rules that never matched the source", () => {
     expect(
       formattingDropsRedactions("hello", "hello", [redaction("not-present")]),

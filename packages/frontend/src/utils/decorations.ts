@@ -200,15 +200,24 @@ function countRuleMatches(
   text: string,
   regex: string,
   matchMode: MatchMode,
-): number {
+): Map<string, number> {
+  const counts = new Map<string, number>();
   const pattern = resolvePattern(regex, matchMode);
-  if (pattern.length === 0) return 0;
+  if (pattern.length === 0) return counts;
 
   try {
-    return text.match(new RegExp(pattern, "g"))?.length ?? 0;
+    for (const match of text.matchAll(new RegExp(pattern, "g"))) {
+      // Formatting only changes whitespace, so compare match identity with
+      // whitespace removed. Equal counts alone are not enough: a rule can stop
+      // matching one span and start matching another of the same length.
+      const content = match[0].replace(/\s+/g, "");
+      counts.set(content, (counts.get(content) ?? 0) + 1);
+    }
   } catch {
-    return 0;
+    return counts;
   }
+
+  return counts;
 }
 
 /**
@@ -223,13 +232,20 @@ export function formattingDropsRedactions(
   redactions: RedactionRule[],
 ): boolean {
   return redactions.some((rule) => {
-    const displayedMatches = countRuleMatches(
+    const sourceCounts = countRuleMatches(source, rule.regex, rule.matchMode);
+    if (sourceCounts.size === 0) return false;
+
+    const displayedCounts = countRuleMatches(
       displayed,
       rule.regex,
       rule.matchMode,
     );
-    const sourceMatches = countRuleMatches(source, rule.regex, rule.matchMode);
-    return displayedMatches < sourceMatches;
+
+    for (const [content, count] of sourceCounts) {
+      if ((displayedCounts.get(content) ?? 0) < count) return true;
+    }
+
+    return false;
   });
 }
 
